@@ -10,7 +10,8 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="サブスク管理" />
-    <meta name="theme-color" content="#F4F5F9" />
+    <meta name="theme-color" content="#F4F5F9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)" />
     <link rel="apple-touch-icon" href="/sabusuku/apple-touch-icon.png" />
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
@@ -23,6 +24,11 @@
       body {
         overflow: hidden;
         background-color: #f4f5f9;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #111113;
+        }
       }
       /* These styles make the root element full-height */
       #root {
@@ -41,6 +47,6 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/sabusuku/_expo/static/js/web/index-8bc58371fc427d9d270675e5d440c460.js" defer></script>
+  <script src="/sabusuku/_expo/static/js/web/index-29b75a3de23fae543a7cc73169e65e85.js" defer></script>
 </body>
 </html>
