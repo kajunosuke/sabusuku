@@ -2,32 +2,46 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PaymentCalendar } from './src/components/PaymentCalendar';
 import { SubscriptionForm } from './src/components/SubscriptionForm';
 import { SubscriptionRow } from './src/components/SubscriptionRow';
 import { SummaryCard } from './src/components/SummaryCard';
 import { UnusedCard } from './src/components/UnusedCard';
 import { UsageCheckCard } from './src/components/UsageCheckCard';
 import { loadSubscriptions, saveSubscriptions } from './src/storage';
-import { colors } from './src/theme';
+import { ThemeProvider, useColors, useTheme, type Colors, type ThemeMode } from './src/theme';
 import type { Subscription } from './src/types';
 import { monthlyAmount, needsUsageCheck, nextBillingDate, usageStatus } from './src/utils';
 
 type SortKey = 'date' | 'price';
+type ViewMode = 'list' | 'calendar';
+
+const THEME_MODES: { mode: ThemeMode; label: string }[] = [
+  { mode: 'auto', label: '🌓 自動' },
+  { mode: 'light', label: '☀️ ライト' },
+  { mode: 'dark', label: '🌙 ダーク' },
+];
 type Editing = { mode: 'new' } | { mode: 'edit'; sub: Subscription } | null;
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <Home />
+      <ThemeProvider>
+        <Home />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
 
 function Home() {
+  const colors = useColors();
+  const { scheme, mode, setMode } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('date');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [editing, setEditing] = useState<Editing>(null);
   /** 「あとで」を押したサブスク（アプリを開き直すとまた聞く） */
   const [skipped, setSkipped] = useState<string[]>([]);
@@ -72,7 +86,9 @@ function Home() {
 
   const handleSave = (sub: Subscription) => {
     setSubs((prev) =>
-      prev.some((s) => s.id === sub.id) ? prev.map((s) => (s.id === sub.id ? sub : s)) : [...prev, sub],
+      prev.some((s) => s.id === sub.id)
+        ? prev.map((s) => (s.id === sub.id ? sub : s))
+        : [...prev, sub],
     );
     setEditing(null);
   };
@@ -84,14 +100,28 @@ function Home() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <StatusBar style="dark" />
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <FlatList
-        data={sorted}
+        data={viewMode === 'list' ? sorted : []}
         keyExtractor={(s) => s.id}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 110 }]}
         ListHeaderComponent={
           <>
-            <Text style={styles.title}>サブスク管理</Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title}>サブスク管理</Text>
+              <Pressable
+                onPress={() => {
+                  const i = THEME_MODES.findIndex((t) => t.mode === mode);
+                  setMode(THEME_MODES[(i + 1) % THEME_MODES.length].mode);
+                }}
+                style={({ pressed }) => [styles.themeButton, pressed && { opacity: 0.6 }]}
+                accessibilityLabel="画面の明るさを切り替える"
+              >
+                <Text style={styles.themeButtonText}>
+                  {THEME_MODES.find((t) => t.mode === mode)?.label}
+                </Text>
+              </Pressable>
+            </View>
             <SummaryCard subscriptions={subs} />
             {checkQueue.length > 0 && (
               <UsageCheckCard
@@ -108,6 +138,27 @@ function Home() {
               />
             )}
             {subs.length > 0 && (
+              <View style={styles.viewToggle}>
+                {(['list', 'calendar'] as const).map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => setViewMode(v)}
+                    style={[styles.viewItem, viewMode === v && styles.viewItemActive]}
+                  >
+                    <Text style={[styles.viewText, viewMode === v && styles.viewTextActive]}>
+                      {v === 'list' ? '📋 リスト' : '📅 カレンダー'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {subs.length > 0 && viewMode === 'calendar' && (
+              <PaymentCalendar
+                subscriptions={subs}
+                onPressSub={(sub) => setEditing({ mode: 'edit', sub })}
+              />
+            )}
+            {subs.length > 0 && viewMode === 'list' && (
               <View style={styles.listHeader}>
                 <Text style={styles.listTitle}>契約中のサービス</Text>
                 <View style={styles.sortToggle}>
@@ -128,7 +179,7 @@ function Home() {
           </>
         }
         ListEmptyComponent={
-          loaded ? (
+          loaded && subs.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🧾</Text>
               <Text style={styles.emptyTitle}>まだサブスクがありません</Text>
@@ -173,40 +224,74 @@ function Home() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  list: { padding: 16 },
-  title: { fontSize: 28, fontWeight: '800', color: colors.text, marginBottom: 16, marginTop: 8 },
-  listHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  listTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
-  sortToggle: { flexDirection: 'row', backgroundColor: colors.border, borderRadius: 10, padding: 2 },
-  sortItem: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  sortItemActive: { backgroundColor: colors.card },
-  sortText: { fontSize: 12, color: colors.subText, fontWeight: '600' },
-  sortTextActive: { color: colors.text, fontWeight: '700' },
-  empty: { alignItems: 'center', paddingVertical: 48 },
-  emptyEmoji: { fontSize: 48 },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 12 },
-  emptyText: { fontSize: 14, color: colors.subText, marginTop: 6 },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.primary,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  fabText: { color: '#fff', fontSize: 30, fontWeight: '600', marginTop: -2 },
-});
+function createStyles(colors: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.bg },
+    list: { padding: 16 },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+      marginTop: 8,
+    },
+    title: { fontSize: 28, fontWeight: '800', color: colors.text },
+    themeButton: {
+      backgroundColor: colors.card,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+    },
+    themeButtonText: { fontSize: 13, fontWeight: '700', color: colors.subText },
+    viewToggle: {
+      flexDirection: 'row',
+      backgroundColor: colors.border,
+      borderRadius: 12,
+      padding: 3,
+      marginBottom: 16,
+    },
+    viewItem: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10 },
+    viewItemActive: { backgroundColor: colors.card },
+    viewText: { fontSize: 14, fontWeight: '600', color: colors.subText },
+    viewTextActive: { color: colors.text, fontWeight: '800' },
+    listHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    listTitle: { fontSize: 17, fontWeight: '700', color: colors.text },
+    sortToggle: {
+      flexDirection: 'row',
+      backgroundColor: colors.border,
+      borderRadius: 10,
+      padding: 2,
+    },
+    sortItem: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+    sortItemActive: { backgroundColor: colors.card },
+    sortText: { fontSize: 12, color: colors.subText, fontWeight: '600' },
+    sortTextActive: { color: colors.text, fontWeight: '700' },
+    empty: { alignItems: 'center', paddingVertical: 48 },
+    emptyEmoji: { fontSize: 48 },
+    emptyTitle: { fontSize: 17, fontWeight: '700', color: colors.text, marginTop: 12 },
+    emptyText: { fontSize: 14, color: colors.subText, marginTop: 6 },
+    fab: {
+      position: 'absolute',
+      right: 24,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.primary,
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
+    },
+    fabText: { color: '#fff', fontSize: 30, fontWeight: '600', marginTop: -2 },
+  });
+}

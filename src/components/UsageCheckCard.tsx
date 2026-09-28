@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Subscription } from '../types';
-import { colors } from '../theme';
+import { useColors, type Colors } from '../theme';
 import { daysSince, formatYen, monthlyAmount } from '../utils';
 import { ServiceIcon } from './ServiceIcon';
 
@@ -13,6 +14,8 @@ type Props = {
 
 /** 「最近使ってる？」を1件ずつ聞くカード */
 export function UsageCheckCard({ sub, remaining, onAnswer, onSkip }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const lastChecked =
     sub.usage === 'used' && sub.usageCheckedAt
       ? `前回「使ってる」と答えてから${daysSince(sub.usageCheckedAt)}日たちました`
@@ -56,28 +59,30 @@ export function UsageCheckCard({ sub, remaining, onAnswer, onSkip }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: colors.primarySoft,
-  },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 16, fontWeight: '800', color: colors.text },
-  count: { fontSize: 12, fontWeight: '600', color: colors.subText },
-  service: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
-  serviceText: { flex: 1 },
-  name: { fontSize: 18, fontWeight: '800', color: colors.text },
-  sub: { fontSize: 12, color: colors.subText, marginTop: 3 },
-  buttons: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  button: { flex: 1, alignItems: 'center', paddingVertical: 13, borderRadius: 14 },
-  used: { backgroundColor: colors.successSoft },
-  unused: { backgroundColor: colors.dangerSoft },
-  pressed: { opacity: 0.7 },
-  buttonText: { fontSize: 15, fontWeight: '800' },
-  skip: { alignSelf: 'center', marginTop: 12 },
-  skipText: { fontSize: 13, color: colors.subText, fontWeight: '600' },
-});
+function createStyles(colors: Colors) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 16,
+      borderWidth: 1.5,
+      borderColor: colors.primarySoft,
+    },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    title: { fontSize: 16, fontWeight: '800', color: colors.text },
+    count: { fontSize: 12, fontWeight: '600', color: colors.subText },
+    service: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
+    serviceText: { flex: 1 },
+    name: { fontSize: 18, fontWeight: '800', color: colors.text },
+    sub: { fontSize: 12, color: colors.subText, marginTop: 3 },
+    buttons: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    button: { flex: 1, alignItems: 'center', paddingVertical: 13, borderRadius: 14 },
+    used: { backgroundColor: colors.successSoft },
+    unused: { backgroundColor: colors.dangerSoft },
+    pressed: { opacity: 0.7 },
+    buttonText: { fontSize: 15, fontWeight: '800' },
+    skip: { alignSelf: 'center', marginTop: 12 },
+    skipText: { fontSize: 13, color: colors.subText, fontWeight: '600' },
+  });
+}

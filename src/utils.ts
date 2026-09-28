@@ -34,6 +34,16 @@ export function nextBillingDate(s: Subscription, today: Date = new Date()): Date
     : dateInMonth(t.getFullYear() + 1, s.billingMonth - 1, s.billingDay);
 }
 
+/** 指定した月の支払日。その月に支払いがなければ null（年額は支払月だけ） */
+export function billingDateInMonth(
+  s: Subscription,
+  year: number,
+  monthIndex: number,
+): Date | null {
+  if (s.cycle === 'yearly' && s.billingMonth - 1 !== monthIndex) return null;
+  return dateInMonth(year, monthIndex, s.billingDay);
+}
+
 export function daysUntil(date: Date, today: Date = new Date()): number {
   return Math.round((startOfDay(date).getTime() - startOfDay(today).getTime()) / DAY_MS);
 }

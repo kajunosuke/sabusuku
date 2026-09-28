@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Subscription } from '../types';
-import { colors } from '../theme';
+import { useColors, type Colors } from '../theme';
 import { formatYen, monthlyAmount, yearlyAmount } from '../utils';
 import { ServiceIcon } from './ServiceIcon';
 
@@ -11,6 +12,8 @@ type Props = {
 
 /** 「使ってない」と答えたサブスクのまとめ（解約候補） */
 export function UnusedCard({ subscriptions, onPress }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const monthly = subscriptions.reduce((sum, s) => sum + monthlyAmount(s), 0);
   const yearly = subscriptions.reduce((sum, s) => sum + yearlyAmount(s), 0);
 
@@ -42,32 +45,39 @@ export function UnusedCard({ subscriptions, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.dangerSoft,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-  },
-  title: { fontSize: 16, fontWeight: '800', color: colors.danger },
-  total: { fontSize: 14, color: colors.text, marginTop: 8, fontWeight: '600' },
-  amount: { fontSize: 22, fontWeight: '800', color: colors.danger, fontVariant: ['tabular-nums'] },
-  hint: { fontSize: 12, color: colors.subText, marginTop: 2 },
-  list: { marginTop: 12, gap: 6 },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  itemName: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.text },
-  itemPrice: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.subText,
-    fontVariant: ['tabular-nums'],
-  },
-});
+function createStyles(colors: Colors) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.dangerSoft,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 16,
+    },
+    title: { fontSize: 16, fontWeight: '800', color: colors.danger },
+    total: { fontSize: 14, color: colors.text, marginTop: 8, fontWeight: '600' },
+    amount: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.danger,
+      fontVariant: ['tabular-nums'],
+    },
+    hint: { fontSize: 12, color: colors.subText, marginTop: 2 },
+    list: { marginTop: 12, gap: 6 },
+    item: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    itemName: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.text },
+    itemPrice: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.subText,
+      fontVariant: ['tabular-nums'],
+    },
+  });
+}

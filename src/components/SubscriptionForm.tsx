@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,7 @@ import {
   type Cycle,
   type Subscription,
 } from '../types';
-import { colors } from '../theme';
+import { useColors, type Colors } from '../theme';
 import { formatYen, newId } from '../utils';
 import { ServiceIcon } from './ServiceIcon';
 
@@ -26,7 +26,7 @@ import { ServiceIcon } from './ServiceIcon';
 type TabId = CategoryId | 'custom';
 const TABS: { id: TabId; label: string; emoji: string; color: string }[] = [
   ...CATEGORIES.filter((c) => SERVICES.some((s) => s.category === c.id)),
-  { id: 'custom', label: '手入力', emoji: '✏️', color: colors.subText },
+  { id: 'custom', label: '手入力', emoji: '✏️', color: '#8B8D98' },
 ];
 
 const TILE_WIDTH = 78;
@@ -65,6 +65,8 @@ function initialPlanChoice(initial?: Subscription): PlanChoice {
 }
 
 export function SubscriptionForm({ initial, onSave, onDelete, onCancel }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const today = new Date();
   const [tab, setTab] = useState<TabId>(() =>
     initial ? (findService(initial.name)?.category ?? 'custom') : 'video',
@@ -132,7 +134,10 @@ export function SubscriptionForm({ initial, onSave, onDelete, onCancel }: Props)
 
     if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31)
       return setError('支払日は1〜31で入力してください');
-    if (effectiveCycle === 'yearly' && (!Number.isInteger(monthNum) || monthNum < 1 || monthNum > 12))
+    if (
+      effectiveCycle === 'yearly' &&
+      (!Number.isInteger(monthNum) || monthNum < 1 || monthNum > 12)
+    )
       return setError('支払月は1〜12で入力してください');
 
     onSave({
@@ -144,7 +149,7 @@ export function SubscriptionForm({ initial, onSave, onDelete, onCancel }: Props)
       plan: selectedPlan?.label,
       billingDay: dayNum,
       billingMonth:
-        effectiveCycle === 'yearly' ? monthNum : initial?.billingMonth ?? today.getMonth() + 1,
+        effectiveCycle === 'yearly' ? monthNum : (initial?.billingMonth ?? today.getMonth() + 1),
       category: service ? service.category : category,
       usage,
       usageCheckedAt: usage === initial?.usage ? initial?.usageCheckedAt : Date.now(),
@@ -195,9 +200,7 @@ export function SubscriptionForm({ initial, onSave, onDelete, onCancel }: Props)
                     style={[styles.tab, active && { backgroundColor: t.color }]}
                   >
                     <Text style={styles.tabEmoji}>{t.emoji}</Text>
-                    <Text style={[styles.tabText, active && styles.tabTextActive]}>
-                      {t.label}
-                    </Text>
+                    <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
                   </Pressable>
                 );
               })}
@@ -460,173 +463,175 @@ export function SubscriptionForm({ initial, onSave, onDelete, onCancel }: Props)
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: colors.card,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
-  headerButton: { fontSize: 16, color: colors.primary },
-  headerSave: { fontWeight: '700' },
-  body: { padding: 16, paddingBottom: 48 },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.subText,
-    marginTop: 18,
-    marginBottom: 8,
-  },
-  search: { marginTop: 4 },
-  manualNote: { marginTop: 16 },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: colors.border,
-    borderRadius: 14,
-    padding: 3,
-    gap: 3,
-  },
-  tab: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 11 },
-  tabEmoji: { fontSize: 18 },
-  tabText: { fontSize: 11, fontWeight: '700', color: colors.subText, marginTop: 2 },
-  tabTextActive: { color: '#fff' },
-  carousel: { marginHorizontal: -16 },
-  carouselContent: { gap: TILE_GAP, paddingHorizontal: 16, paddingVertical: 2 },
-  tile: {
-    width: TILE_WIDTH,
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderRadius: 14,
-    backgroundColor: colors.card,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  tileActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  tileName: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-    marginTop: 6,
-    lineHeight: 14,
-    minHeight: 28,
-  },
-  tileNameActive: { color: colors.primary, fontWeight: '800' },
-  link: { color: colors.primary, fontSize: 13, fontWeight: '600', marginTop: 10 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  input: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  planList: { gap: 8 },
-  planItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  planItemActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
-  radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: colors.faint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioActive: { borderColor: colors.primary },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
-  planLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
-  cycleTag: {
-    backgroundColor: colors.bg,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  cycleTagText: { fontSize: 11, fontWeight: '700', color: colors.subText },
-  planPrice: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-    minWidth: 64,
-    textAlign: 'right',
-    fontVariant: ['tabular-nums'],
-  },
-  note: { fontSize: 12, color: colors.subText, marginTop: 8 },
-  inputWithUnit: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  unit: { fontSize: 20, fontWeight: '700', color: colors.subText },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: colors.border,
-    borderRadius: 12,
-    padding: 3,
-  },
-  segmentItem: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
-  segmentItemActive: { backgroundColor: colors.card },
-  segmentText: { fontSize: 15, color: colors.subText, fontWeight: '600' },
-  segmentTextActive: { color: colors.text, fontWeight: '700' },
-  dateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dateText: { fontSize: 16, color: colors.text },
-  smallInput: { width: 64, textAlign: 'center' },
-  categoryRow: { flexDirection: 'row', gap: 8 },
-  categoryItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  categoryEmoji: { fontSize: 20 },
-  categoryLabel: { fontSize: 12, fontWeight: '600', color: colors.subText, marginTop: 2 },
-  usageRow: { flexDirection: 'row', gap: 8 },
-  usageItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  usageText: { fontSize: 15, fontWeight: '700', color: colors.subText },
-  error: { color: colors.danger, marginTop: 16, fontSize: 14, fontWeight: '600' },
-  saveButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 28,
-  },
-  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  deleteButton: {
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 12,
-    backgroundColor: colors.dangerSoft,
-  },
-  deleteButtonConfirm: { backgroundColor: colors.danger },
-  deleteText: { color: colors.danger, fontSize: 15, fontWeight: '700' },
-});
+function createStyles(colors: Colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.bg },
+    flex: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      backgroundColor: colors.card,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.border,
+    },
+    headerTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
+    headerButton: { fontSize: 16, color: colors.primary },
+    headerSave: { fontWeight: '700' },
+    body: { padding: 16, paddingBottom: 48 },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.subText,
+      marginTop: 18,
+      marginBottom: 8,
+    },
+    search: { marginTop: 4 },
+    manualNote: { marginTop: 16 },
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.border,
+      borderRadius: 14,
+      padding: 3,
+      gap: 3,
+    },
+    tab: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 11 },
+    tabEmoji: { fontSize: 18 },
+    tabText: { fontSize: 11, fontWeight: '700', color: colors.subText, marginTop: 2 },
+    tabTextActive: { color: '#fff' },
+    carousel: { marginHorizontal: -16 },
+    carouselContent: { gap: TILE_GAP, paddingHorizontal: 16, paddingVertical: 2 },
+    tile: {
+      width: TILE_WIDTH,
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 4,
+      borderRadius: 14,
+      backgroundColor: colors.card,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    tileActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+    tileName: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: colors.text,
+      textAlign: 'center',
+      marginTop: 6,
+      lineHeight: 14,
+      minHeight: 28,
+    },
+    tileNameActive: { color: colors.primary, fontWeight: '800' },
+    link: { color: colors.primary, fontSize: 13, fontWeight: '600', marginTop: 10 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    input: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.text,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    planList: { gap: 8 },
+    planItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    planItemActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+    radio: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 2,
+      borderColor: colors.faint,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    radioActive: { borderColor: colors.primary },
+    radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+    planLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text },
+    cycleTag: {
+      backgroundColor: colors.bg,
+      borderRadius: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    cycleTagText: { fontSize: 11, fontWeight: '700', color: colors.subText },
+    planPrice: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.text,
+      minWidth: 64,
+      textAlign: 'right',
+      fontVariant: ['tabular-nums'],
+    },
+    note: { fontSize: 12, color: colors.subText, marginTop: 8 },
+    inputWithUnit: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    unit: { fontSize: 20, fontWeight: '700', color: colors.subText },
+    segment: {
+      flexDirection: 'row',
+      backgroundColor: colors.border,
+      borderRadius: 12,
+      padding: 3,
+    },
+    segmentItem: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
+    segmentItemActive: { backgroundColor: colors.card },
+    segmentText: { fontSize: 15, color: colors.subText, fontWeight: '600' },
+    segmentTextActive: { color: colors.text, fontWeight: '700' },
+    dateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    dateText: { fontSize: 16, color: colors.text },
+    smallInput: { width: 64, textAlign: 'center' },
+    categoryRow: { flexDirection: 'row', gap: 8 },
+    categoryItem: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: colors.card,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    categoryEmoji: { fontSize: 20 },
+    categoryLabel: { fontSize: 12, fontWeight: '600', color: colors.subText, marginTop: 2 },
+    usageRow: { flexDirection: 'row', gap: 8 },
+    usageItem: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderRadius: 12,
+      backgroundColor: colors.card,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    usageText: { fontSize: 15, fontWeight: '700', color: colors.subText },
+    error: { color: colors.danger, marginTop: 16, fontSize: 14, fontWeight: '600' },
+    saveButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 14,
+      paddingVertical: 15,
+      alignItems: 'center',
+      marginTop: 28,
+    },
+    saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    deleteButton: {
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: 12,
+      backgroundColor: colors.dangerSoft,
+    },
+    deleteButtonConfirm: { backgroundColor: colors.danger },
+    deleteText: { color: colors.danger, fontSize: 15, fontWeight: '700' },
+  });
+}
