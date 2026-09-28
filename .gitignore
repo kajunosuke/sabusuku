@@ -45,3 +45,7 @@ yarn-error.*
 
 # Claude Code のローカル設定
 .claude/
+
+# Claude Code 向けの作業メモ（ローカルだけで使う）
+AGENTS.md
+CLAUDE.md
